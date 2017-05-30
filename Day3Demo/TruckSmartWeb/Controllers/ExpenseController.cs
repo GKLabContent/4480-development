@@ -11,10 +11,19 @@ namespace TruckSmartWeb.Controllers
     {
         // GET: Expenses
         private TruckSmartContext context = new TruckSmartContext();
+        private string driverID
+        {
+            get
+            {
+                return Session["DriverID"].ToString();
+            }
+        }
         public ExpenseController() : base()
         {
             ViewBag.Shipments = context.GetMyShipments();
         }
+
+
         public ActionResult Index()
         {
             return View(context.GetExpenses());
@@ -48,7 +57,7 @@ namespace TruckSmartWeb.Controllers
         {
             return View(new Expense
             {
-                DriverID = WebApiApplication.CurrentUser,
+                DriverID = this.driverID,
                 ExpenseID = Guid.NewGuid()
             });
         }

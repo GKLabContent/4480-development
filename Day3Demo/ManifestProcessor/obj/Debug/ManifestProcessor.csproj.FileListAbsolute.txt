@@ -1,0 +1,7 @@
+D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\ManifestProcessor\bin\Debug\ManifestProcessor.dll
+D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\ManifestProcessor\bin\Debug\ManifestProcessor.pdb
+D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\ManifestProcessor\bin\Debug\TruckSmartTypes.dll
+D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\ManifestProcessor\bin\Debug\TruckSmartTypes.pdb
+D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\ManifestProcessor\obj\Debug\ManifestProcessor.csprojResolveAssemblyReference.cache
+D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\ManifestProcessor\obj\Debug\ManifestProcessor.dll
+D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\ManifestProcessor\obj\Debug\ManifestProcessor.pdb

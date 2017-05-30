@@ -3,7 +3,7 @@
   <PropertyGroup>
     <UseIISExpress>true</UseIISExpress>
     <IISExpressSSLPort>44318</IISExpressSSLPort>
-    <NameOfLastUsedPublishProfile>tswtrucksmart - Web Deploy</NameOfLastUsedPublishProfile>
+    <NameOfLastUsedPublishProfile>tswtrucksmart - Web Deploy %282%29</NameOfLastUsedPublishProfile>
   </PropertyGroup>
   <ProjectExtensions>
     <VisualStudio>

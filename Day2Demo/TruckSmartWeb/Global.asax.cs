@@ -11,7 +11,7 @@ namespace TruckSmartWeb
 {
     public class WebApiApplication : System.Web.HttpApplication
     {
-        public static Guid CurrentUser ;
+        //public static Guid CurrentUser ;
         protected void Application_Start()
         {
             AreaRegistration.RegisterAllAreas();
@@ -19,7 +19,10 @@ namespace TruckSmartWeb
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
-            CurrentUser = new Guid(System.Configuration.ConfigurationManager.AppSettings["testDriverID"]);
+        }
+        protected void Session_Start()
+        {
+            Session["DriverID"] = System.Configuration.ConfigurationManager.AppSettings["testDriverID"];
         }
     }
 }

@@ -7,7 +7,7 @@ using TruckSmartWeb.Models;
 
 namespace TruckSmartWeb.Controllers
 {
-    
+    [Authorize]
     public class DriverController : Controller
     {
         // GET: Driver

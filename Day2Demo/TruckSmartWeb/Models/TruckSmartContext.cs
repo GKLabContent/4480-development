@@ -11,6 +11,9 @@ namespace TruckSmartWeb.Models
 {
     public class TruckSmartContext:DbContext
     {
+        //TODO: 1. Create the infrastructure as per the instructor guide
+        //TODO: 2. Update the Database and Redis connection strings in web.config
+        private string driverID;
         #region Redis cache setup
         private static Lazy<ConnectionMultiplexer> lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
         {
@@ -28,23 +31,23 @@ namespace TruckSmartWeb.Models
 
         #endregion
 
-        //static TruckSmartContext()
-        //{
-        //    var init = new TruckSmartDBInitializer();
-        //    init.InitializeDatabase(new TruckSmartContext());
-        //}
+        static TruckSmartContext()
+        {
+            var init = new TruckSmartDBInitializer();
+            init.InitializeDatabase(new TruckSmartContext());
+        }
 
         #region Database context setup
-        public TruckSmartContext():base("name=TruckSmartDB")
+        public TruckSmartContext():this("name=TruckSmartDB")
         {
 
         }
         public TruckSmartContext(string connection) : base(connection)
         {
-
+            driverID = System.Web.HttpContext.Current.Session["DriverID"].ToString();
         }
         public DbSet<Customer> Customers { get; set; }
-        public DbSet<Contractor> Contractors { get; set; }
+        public DbSet<Driver> Drivers { get; set; }
         public DbSet<Shipment> Shipments { get; set; }
         public DbSet<Trip> Trips { get; set; }
         public DbSet<ServiceProvider> ServiceProviders { get; set; }
@@ -57,7 +60,7 @@ namespace TruckSmartWeb.Models
         }
         public List<Shipment> GetMyShipments()
         {
-            return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => (s.Driver != null) && (s.Driver.ContractorID == WebApiApplication.CurrentUser)).ToList();
+            return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => (s.Driver != null) && (s.Driver.DriverID == this.driverID)).ToList();
 
         }
         public Shipment GetShipment(Guid id)
@@ -72,7 +75,7 @@ namespace TruckSmartWeb.Models
             {
                 throw new InvalidOperationException("This shipment is already reserved");
             }
-            var driver = Contractors.First(d => d.ContractorID == WebApiApplication.CurrentUser);
+            var driver = Drivers.First(d => d.DriverID == this.driverID);
             shipment.Driver = driver;
             SaveChanges();
             return shipment;
@@ -81,7 +84,7 @@ namespace TruckSmartWeb.Models
         public Shipment ReleaseShipment(Guid id)
         {
             var shipment = Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => s.ShipmentID == id).First();
-            if((shipment.Driver == null) || (shipment.Driver.ContractorID != WebApiApplication.CurrentUser))
+            if((shipment.Driver == null) || (shipment.Driver.DriverID != this.driverID))
             {
                 throw new InvalidOperationException("This shipment is not reserved for the current driver.");
             }
@@ -95,21 +98,22 @@ namespace TruckSmartWeb.Models
         #region Emergency service providers
         public List<ServiceProvider> GetProviders()
         {
+            List<ServiceProvider> results = null;
             string cacheKey = "TruckSmart_Providers";
             IDatabase cache = Connection.GetDatabase();
             string cacheData = cache.StringGet(cacheKey);
-            List<ServiceProvider> results = null;
-            if(!string.IsNullOrEmpty(cacheData))
+            if (!string.IsNullOrEmpty(cacheData))
             {
                 try
                 {
                     results = JsonConvert.DeserializeObject<List<ServiceProvider>>(cacheData);
-                } catch
+                }
+                catch
                 {
                     //Do something if there is an error
                 }
             }
-            if(results==null)
+            if (results==null)
             {
                 results = this.ServiceProviders.ToList();
                 cache.StringSet(cacheKey, JsonConvert.SerializeObject(results));

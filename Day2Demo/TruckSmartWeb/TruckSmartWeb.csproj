@@ -225,7 +225,7 @@
     <Compile Include="Models\builtins\AccountBindingModels.cs" />
     <Compile Include="Models\builtins\AccountViewModels.cs" />
     <Compile Include="Models\Customer.cs" />
-    <Compile Include="Models\Contractor.cs" />
+    <Compile Include="Models\Driver.cs" />
     <Compile Include="Models\builtins\IdentityModels.cs" />
     <Compile Include="Models\ServiceProvider.cs" />
     <Compile Include="Models\TruckSmartDBInitializer.cs" />

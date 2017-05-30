@@ -7,6 +7,7 @@ using TruckSmartWeb.Models;
 
 namespace TruckSmartWeb.Controllers
 {
+    [Authorize()]
     public class ExpenseController : Controller
     {
         // GET: Expenses
@@ -48,7 +49,7 @@ namespace TruckSmartWeb.Controllers
         {
             return View(new Expense
             {
-                DriverID = WebApiApplication.CurrentUser,
+                DriverID = System.Web.HttpContext.Current.User.Identity.Name, 
                 ExpenseID = Guid.NewGuid()
             });
         }

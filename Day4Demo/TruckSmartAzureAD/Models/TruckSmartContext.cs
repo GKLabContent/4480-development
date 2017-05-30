@@ -17,6 +17,7 @@ namespace TruckSmartWeb.Models
 {
     public class TruckSmartContext : DbContext
     {
+        private string driverID = string.Empty;
         #region redis setup
         //private static Lazy<ConnectionMultiplexer> lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
         //{
@@ -37,8 +38,8 @@ namespace TruckSmartWeb.Models
         #region Database initialization
         static TruckSmartContext()
         {
-            var init = new TruckSmartDBInitializer();
-            init.InitializeDatabase(new TruckSmartContext());
+            //var init = new TruckSmartDBInitializer();
+            //init.InitializeDatabase(new TruckSmartContext());
         }
         #endregion
 
@@ -50,6 +51,7 @@ namespace TruckSmartWeb.Models
         public TruckSmartContext(string connection) : base(connection)
         {
             if (System.Web.HttpContext.Current.User.Identity.IsAuthenticated) {
+                this.driverID = System.Web.HttpContext.Current.User.Identity.Name;
                 var thisDriver = Drivers.FirstOrDefault(d => d.DriverID == System.Web.HttpContext.Current.User.Identity.Name);
                 if (thisDriver==null)
                 {
@@ -80,7 +82,7 @@ namespace TruckSmartWeb.Models
         }
         public List<Shipment> GetMyShipments()
         {
-            return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => (s.Driver != null) && (s.Driver.DriverID == System.Web.HttpContext.Current.User.Identity.Name)).ToList();
+            return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => (s.Driver != null) && (s.Driver.DriverID == this.driverID)).ToList();
 
         }
         public Shipment GetShipment(Guid id)
@@ -89,13 +91,19 @@ namespace TruckSmartWeb.Models
         }
         public Shipment ReserveShipment(Guid id)
         {
+            //In generate it is a bad idea to return a null without notification, 
+            //but this will do for a demo.
+            if(this.driverID==string.Empty)
+            {
+                return null;
+            }
             var shipment = Shipments.Include(s => s.Driver).Where(s => s.ShipmentID == id).First();
             //Check to make sure it is not already reserved
             if (shipment.Driver != null)
             {
                 throw new InvalidOperationException("This shipment is already reserved");
             }
-            var driver = Drivers.First(d => d.DriverID == System.Web.HttpContext.Current.User.Identity.Name);
+            var driver = Drivers.First(d => d.DriverID == this.driverID);
             shipment.Driver = driver;
             SaveChanges();
             return shipment;
@@ -104,7 +112,7 @@ namespace TruckSmartWeb.Models
         public Shipment ReleaseShipment(Guid id)
         {
             var shipment = Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => s.ShipmentID == id).First();
-            if ((shipment.Driver == null) || (shipment.Driver.DriverID != System.Web.HttpContext.Current.User.Identity.Name))
+            if ((shipment.Driver == null) || (shipment.Driver.DriverID != this.driverID))
             {
                 throw new InvalidOperationException("This shipment is not reserved for the current driver.");
             }
@@ -201,7 +209,7 @@ namespace TruckSmartWeb.Models
             var expenses = new List<Expense>();
 
             //TODO: 3. Basic querying.  
-            var partitionFilter = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, System.Web.HttpContext.Current.User.Identity.Name);
+            var partitionFilter = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, this.driverID);
             TableQuery<Expense> query = null;
             if (!ShipmentID.HasValue && (!From.HasValue || !To.HasValue))
             {
@@ -242,7 +250,7 @@ namespace TruckSmartWeb.Models
         public Expense GetExpense(Guid ExpenseID)
         {
             var expense = new Expense();
-            var operation = TableOperation.Retrieve<Expense>(System.Web.HttpContext.Current.User.Identity.Name, ExpenseID.ToString());
+            var operation = TableOperation.Retrieve<Expense>(this.driverID, ExpenseID.ToString());
             var result = expenseTable.Execute(operation);
             return (Expense)result.Result;
 
@@ -264,7 +272,7 @@ namespace TruckSmartWeb.Models
         private string saveReceipt(Guid id, string fileType, byte[] receipt)
         {
             Regex reg = new Regex("[^a-zA-Z0-9 -]");
-            string containerName = reg.Replace(System.Web.HttpContext.Current.User.Identity.Name, "-").ToLower();
+            string containerName = reg.Replace(this.driverID, "-").ToLower();
             string fileName = string.Format("{0}.{1}", reg.Replace(id.ToString(), ""), fileType);
 
             //Get or create container

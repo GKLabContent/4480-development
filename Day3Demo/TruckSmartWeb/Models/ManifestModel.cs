@@ -2,6 +2,9 @@
 using System.IO;
 using Newtonsoft.Json;
 using TruckSmartManifestTypes;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.File;
+using System.Configuration;
 
 namespace TruckSmartWeb.Models
 {
@@ -19,7 +22,30 @@ namespace TruckSmartWeb.Models
         /// <returns>Manifest Response - simple POCO with results</returns>
         public static ManifestResponse ProcessMessage(ManifestRequest datagram)
         {
+            //return SingletonProcess(datagram);
+            return QueueProcess(datagram);
+        }
 
+        private static ManifestResponse QueueProcess(ManifestRequest datagram)
+        {
+            var acct = CloudStorageAccount.Parse(ConfigurationManager.AppSettings["StorageAccount"]);
+            var client = acct.CreateCloudQueueClient();
+            var queue = client.GetQueueReference("manifests");
+            queue.CreateIfNotExists();
+
+            queue.AddMessage(new Microsoft.WindowsAzure.Storage.Queue.CloudQueueMessage(JsonConvert.SerializeObject(datagram)));
+            return new ManifestResponse
+            {
+                ClientAddress = datagram.ClientAddress,
+                Distance = -1,
+                ServerAddress = System.Environment.MachineName,
+                Status = ManifestStatus.Pending
+            };
+
+        }
+
+        private static ManifestResponse SingletonProcess(ManifestRequest datagram)
+        {
             var earthRadiusKm = 6371;
 
             var dLat = degreesToRadians(datagram.End.Latitude - datagram.Start.Latitude);
@@ -32,7 +58,7 @@ namespace TruckSmartWeb.Models
                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2) * Math.Cos(lat1) * Math.Cos(lat2);
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             var distance = earthRadiusKm * c;
-            var output =  new ManifestResponse() { ServerAddress = datagram.ServerAddress, ClientAddress = datagram.ClientAddress, Distance = distance, Status = distance < 1000 ? ManifestStatus.Accepted : ManifestStatus.Pending };
+            var output = new ManifestResponse() { ServerAddress = System.Environment.MachineName, ClientAddress = datagram.ClientAddress, Distance = distance, Status = distance < 1000 ? ManifestStatus.Accepted : ManifestStatus.Pending };
             saveData(datagram, output);
             return output;
         }
@@ -54,28 +80,41 @@ namespace TruckSmartWeb.Models
         /// <param name="output">Result POCO</param>
         private static void saveData(ManifestRequest datagram, ManifestResponse output)
         {
-            string fileNameBase = string.Format("{0}@{1}", datagram.DriverID, datagram.ShipmentID);
-            var drives = DriveInfo.GetDrives();
-            //DriveInfo drive = null;
-            ////Get the last drive on the machine
-            //for (int lcv = 0; lcv < drives.Length; lcv++)
-            //{
-            //    if (drives[lcv].IsReady && drives[lcv].DriveType == DriveType.Fixed)
-            //    {
-            //        drive = drives[lcv];
-            //    }
-            //}
-            //string path = drive.RootDirectory.FullName + "data";
-            string path = System.Configuration.ConfigurationManager.AppSettings["dataFolder"];
-            createDirectory(path);
-            createDirectory(path + @"\datagrams");
-            createDirectory(path + @"\results");
+            //Original Code
+            //string fileNameBase = string.Format("{0}@{1}", datagram.DriverID, datagram.ShipmentID);
+            //string path = System.Configuration.ConfigurationManager.AppSettings["dataFolder"];
+            //createDirectory(path);
+            //createDirectory(path + @"\datagrams");
+            //createDirectory(path + @"\results");
 
-            string inputFile = string.Format("{0}\\datagrams\\{1}.datagram.json", path, fileNameBase);
-            string outputFile = string.Format("{0}\\results\\{1}.result.json", path, fileNameBase);
-            File.WriteAllText(inputFile, JsonConvert.SerializeObject(datagram));
-            File.WriteAllText(outputFile, JsonConvert.SerializeObject(output));
+            //string inputFile = string.Format("{0}\\datagrams\\{1}.datagram.json", path, fileNameBase);
+            //string outputFile = string.Format("{0}\\results\\{1}.result.json", path, fileNameBase);
+            //File.WriteAllText(inputFile, JsonConvert.SerializeObject(datagram));
+            //File.WriteAllText(outputFile, JsonConvert.SerializeObject(output));
 
+            //Save to Share
+            string fileNameBase = string.Format("{0}@{1:yyyyMMdd.HHmmss}",  datagram.ShipmentID,DateTime.Now);
+            string inputFileName = string.Format("{0}.datagram.json",  fileNameBase);
+            string outputFileName = string.Format("{0}.result.json",fileNameBase);
+            string datagramContents = JsonConvert.SerializeObject(datagram);
+            string outputContents = JsonConvert.SerializeObject(output);
+
+            var acct = CloudStorageAccount.Parse(ConfigurationManager.AppSettings["StorageAccount"]);
+            var client = acct.CreateCloudFileClient();
+            var share = client.GetShareReference("manifests");
+            share.CreateIfNotExists();
+
+            var root = share.GetRootDirectoryReference();
+            var datagrams = root.GetDirectoryReference("datagrams");
+            var results = root.GetDirectoryReference("results");
+            datagrams.CreateIfNotExists();
+            results.CreateIfNotExists();
+
+
+            var datagramFile = datagrams.GetFileReference(inputFileName);
+            var outputFile = results.GetFileReference(outputFileName);
+            datagramFile.UploadText(datagramContents);
+            outputFile.UploadText(outputContents);
         }
 
         /// <summary>

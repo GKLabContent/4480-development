@@ -7,6 +7,7 @@ using TruckSmartWeb.Models;
 
 namespace TruckSmartWeb.Controllers
 {
+    [Authorize()]
     public class ExpenseController : Controller
     {
         // GET: Expenses

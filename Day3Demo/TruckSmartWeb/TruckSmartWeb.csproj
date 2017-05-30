@@ -320,9 +320,7 @@
     <Content Include="Content\bootstrap.css.map" />
     <Content Include="Content\bootstrap-theme.min.css.map" />
     <Content Include="Content\bootstrap-theme.css.map" />
-    <None Include="Properties\PublishProfiles\TruckSmartWeb20170504081333 - Web Deploy.pubxml" />
-    <None Include="Properties\PublishProfiles\tswtrucksmart - Web Deploy.pubxml" />
-    <None Include="Properties\PublishProfiles\tswtrucksmart-devtest - Web Deploy.pubxml" />
+    <Content Include="Properties\webjobs-list.json" />
     <None Include="Scripts\jquery-3.1.1.intellisense.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
@@ -379,6 +377,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Properties\PublishProfiles\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config" />
