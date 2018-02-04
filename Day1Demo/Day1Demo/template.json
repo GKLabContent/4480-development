@@ -243,7 +243,6 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Compute/availabilitySets', variables('availSetName'))]",
-        "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName1'))]",
         "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName2'))]"
       ],
       "resources": [
