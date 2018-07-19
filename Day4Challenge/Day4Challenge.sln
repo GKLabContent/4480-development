@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckSmartTestHarness", "Tr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManifestGenerator", "ManifestGenerator\ManifestGenerator.csproj", "{0133166F-F9AE-4696-8100-D88B33E64934}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DistanceEngine", "DistanceEngine\DistanceEngine.csproj", "{9389A048-702E-4738-8115-12631D813C89}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{0133166F-F9AE-4696-8100-D88B33E64934}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0133166F-F9AE-4696-8100-D88B33E64934}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0133166F-F9AE-4696-8100-D88B33E64934}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9389A048-702E-4738-8115-12631D813C89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9389A048-702E-4738-8115-12631D813C89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9389A048-702E-4738-8115-12631D813C89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9389A048-702E-4738-8115-12631D813C89}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
