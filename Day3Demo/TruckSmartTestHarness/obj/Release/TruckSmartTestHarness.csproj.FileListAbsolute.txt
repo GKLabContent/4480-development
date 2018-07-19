@@ -1,1 +1,0 @@
-D:\Courses\4480 - Azure Dev Bootcamp\ChallengeFiles\Day3Demo\TruckSmartTestHarness\bin\Release\TruckSmartTestHarness.exe.config
