@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27825.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckSmartWeb", "TruckSmartWeb\TruckSmartWeb.csproj", "{98C54A1D-0D88-482D-AE15-9CC51A8C85BC}"
 EndProject
@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckSmartTypes", "TruckSma
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckSmartTestHarness", "TruckSmartTestHarness\TruckSmartTestHarness.csproj", "{2BAF8C70-0EA0-4442-B84C-7A2C3ECC942C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckSmartTestUsers", "TruckSmartTestUsers\TruckSmartTestUsers.csproj", "{A695A6E8-03C4-45F1-816B-666A0A72092D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManifestGenerator", "ManifestGenerator\ManifestGenerator.csproj", "{0133166F-F9AE-4696-8100-D88B33E64934}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,12 +29,15 @@ Global
 		{2BAF8C70-0EA0-4442-B84C-7A2C3ECC942C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2BAF8C70-0EA0-4442-B84C-7A2C3ECC942C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2BAF8C70-0EA0-4442-B84C-7A2C3ECC942C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A695A6E8-03C4-45F1-816B-666A0A72092D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A695A6E8-03C4-45F1-816B-666A0A72092D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A695A6E8-03C4-45F1-816B-666A0A72092D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A695A6E8-03C4-45F1-816B-666A0A72092D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0133166F-F9AE-4696-8100-D88B33E64934}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0133166F-F9AE-4696-8100-D88B33E64934}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0133166F-F9AE-4696-8100-D88B33E64934}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0133166F-F9AE-4696-8100-D88B33E64934}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {417C6916-B35B-4A3C-AA0A-2B3E4B06FB65}
 	EndGlobalSection
 EndGlobal
