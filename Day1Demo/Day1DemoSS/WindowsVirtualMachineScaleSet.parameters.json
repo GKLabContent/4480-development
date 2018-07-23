@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmssName": {
+      "value": "ch1"
+    },
+    "instanceCount": {
+      "value": 2
+    },
+    "adminUsername": {
+      "value": "student"
+    },
+    "vmSize": {
+      "value": "Standard_D2_V3"
+    },
+    "adminPassword": {
+      "value": "Pa55w.rd1234"
+    }
+  }
+}
