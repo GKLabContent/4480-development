@@ -3,48 +3,45 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 using System.Web;
+using System.Configuration;
+using Newtonsoft.Json;
 
 namespace TruckSmartWeb.Models
 {
     public class TruckSmartContext : DbContext
     {
-        #region Database context configuration
-        //static TruckSmartContext()
-        //{
-        //    var init = new TruckSmartDBInitializer();
-        //    init.InitializeDatabase(new TruckSmartContext());
-        //}
-        #endregion
+        private string driverID;
 
-        #region Standard initialization
+        static TruckSmartContext()
+        {
+            //var init = new TruckSmartDBInitializer();
+            //init.InitializeDatabase(new TruckSmartContext());
+        }
 
-        public TruckSmartContext() : base("name=TruckSmartDB")
-
+        #region Database context setup
+        public TruckSmartContext() : this("name=TruckSmartDB")
         {
 
         }
         public TruckSmartContext(string connection) : base(connection)
         {
-
+            driverID = System.Web.HttpContext.Current.Session["DriverID"].ToString();
         }
-        #endregion
-
-        #region DBSet properties
         public DbSet<Customer> Customers { get; set; }
-        public DbSet<Contractor> Contractors { get; set; }
+        public DbSet<Driver> Drivers { get; set; }
         public DbSet<Shipment> Shipments { get; set; }
         public DbSet<Trip> Trips { get; set; }
         public DbSet<ServiceProvider> ServiceProviders { get; set; }
         #endregion
 
-        #region Shipment management
+        #region Shipment Management
         public List<Shipment> GetOpenShipments()
         {
             return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => s.Driver == null).ToList();
         }
         public List<Shipment> GetMyShipments()
         {
-            return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => (s.Driver != null) && (s.Driver.ContractorID == WebApiApplication.CurrentUser)).ToList();
+            return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => (s.Driver != null) && (s.Driver.DriverID == this.driverID)).ToList();
 
         }
         public Shipment GetShipment(Guid id)
@@ -59,7 +56,7 @@ namespace TruckSmartWeb.Models
             {
                 throw new InvalidOperationException("This shipment is already reserved");
             }
-            var driver = Contractors.First(d => d.ContractorID == WebApiApplication.CurrentUser);
+            var driver = Drivers.First(d => d.DriverID == this.driverID);
             shipment.Driver = driver;
             SaveChanges();
             return shipment;
@@ -68,7 +65,7 @@ namespace TruckSmartWeb.Models
         public Shipment ReleaseShipment(Guid id)
         {
             var shipment = Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => s.ShipmentID == id).First();
-            if ((shipment.Driver == null) || (shipment.Driver.ContractorID != WebApiApplication.CurrentUser))
+            if ((shipment.Driver == null) || (shipment.Driver.DriverID != this.driverID))
             {
                 throw new InvalidOperationException("This shipment is not reserved for the current driver.");
             }
@@ -79,10 +76,12 @@ namespace TruckSmartWeb.Models
         }
         #endregion
 
-        #region Emergency provider management
+        #region Emergency service providers
         public List<ServiceProvider> GetProviders()
         {
-            return this.ServiceProviders.ToList();
+
+            var results = this.ServiceProviders.ToList();
+            return results;
         }
         public ServiceProvider GetNearestProvider(double latitude, double longitude)
         {
@@ -95,7 +94,7 @@ namespace TruckSmartWeb.Models
             var id = (int)Math.Truncate(((new Random()).NextDouble() * (double)providers.Count));
             return providers[id];
         }
-        #endregion
 
+        #endregion
     }
 }
