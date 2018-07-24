@@ -6,68 +6,47 @@ using System.Web;
 using System.Configuration;
 using StackExchange.Redis;
 using Newtonsoft.Json;
-using Microsoft.WindowsAzure;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Table;
-using System.Text.RegularExpressions;
-using Microsoft.WindowsAzure.Storage.Blob;
-using System.IO;
 
 namespace TruckSmartWeb.Models
 {
-    public class TruckSmartContext : DbContext
+    public class TruckSmartContext:DbContext
     {
-        private string driverID = string.Empty;
-        #region redis setup
-        //private static Lazy<ConnectionMultiplexer> lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
-        //{
-        //    string cacheConnection = ConfigurationManager.ConnectionStrings["redis"].ConnectionString;
-        //    return ConnectionMultiplexer.Connect(cacheConnection);
-        //});
+        //TODO: 1. Create the infrastructure as per the instructor guide
+        //TODO: 2. Update the Database and Redis connection strings in web.config
+        private string driverID;
+        #region Redis cache setup
+        private static Lazy<ConnectionMultiplexer> lazyConnection = new Lazy<ConnectionMultiplexer>(() =>
+        {
+            string cacheConnection = ConfigurationManager.AppSettings["redis"];
+            return ConnectionMultiplexer.Connect(cacheConnection);
+        });
 
-        //public static ConnectionMultiplexer Connection
-        //{
-        //    get
-        //    {
-        //        return lazyConnection.Value;
-        //    }
-        //}
+        public static ConnectionMultiplexer Connection
+        {
+            get
+            {
+                return lazyConnection.Value;
+            }
+        }
 
         #endregion
 
-        #region Database initialization
         static TruckSmartContext()
         {
             //var init = new TruckSmartDBInitializer();
             //init.InitializeDatabase(new TruckSmartContext());
+            Database.SetInitializer<TruckSmartContext>(null);
         }
-        #endregion
 
-        #region Context object initialization
-        public TruckSmartContext() : this("name=TruckSmartDB")
+        #region Database context setup
+        public TruckSmartContext():this("name=TruckSmartDB")
         {
 
         }
         public TruckSmartContext(string connection) : base(connection)
         {
-            if (System.Web.HttpContext.Current.User.Identity.IsAuthenticated) {
-                this.driverID = System.Web.HttpContext.Current.User.Identity.Name;
-                var thisDriver = Drivers.FirstOrDefault(d => d.DriverID == System.Web.HttpContext.Current.User.Identity.Name);
-                if (thisDriver==null)
-                {
-                    Drivers.Add(new Driver
-                    {
-                        DriverID = System.Web.HttpContext.Current.User.Identity.Name,
-                        Name = System.Web.HttpContext.Current.User.Identity.Name,
-                        Email = System.Web.HttpContext.Current.User.Identity.Name
-                    });
-                    SaveChanges();
-                }
-            }
+            driverID = System.Web.HttpContext.Current.Session["DriverID"].ToString();
         }
-        #endregion
-
-        #region Data collection properties.  Core to Entity Framework
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Driver> Drivers { get; set; }
         public DbSet<Shipment> Shipments { get; set; }
@@ -75,7 +54,7 @@ namespace TruckSmartWeb.Models
         public DbSet<ServiceProvider> ServiceProviders { get; set; }
         #endregion
 
-        #region Shipment/trip management
+        #region Shipment Management
         public List<Shipment> GetOpenShipments()
         {
             return Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => s.Driver == null).ToList();
@@ -91,15 +70,9 @@ namespace TruckSmartWeb.Models
         }
         public Shipment ReserveShipment(Guid id)
         {
-            //In generate it is a bad idea to return a null without notification, 
-            //but this will do for a demo.
-            if(this.driverID==string.Empty)
-            {
-                return null;
-            }
             var shipment = Shipments.Include(s => s.Driver).Where(s => s.ShipmentID == id).First();
             //Check to make sure it is not already reserved
-            if (shipment.Driver != null)
+            if(shipment.Driver!=null)
             {
                 throw new InvalidOperationException("This shipment is already reserved");
             }
@@ -112,7 +85,7 @@ namespace TruckSmartWeb.Models
         public Shipment ReleaseShipment(Guid id)
         {
             var shipment = Shipments.Include(s => s.Driver).Include(s => s.From).Include(s => s.To).Where(s => s.ShipmentID == id).First();
-            if ((shipment.Driver == null) || (shipment.Driver.DriverID != this.driverID))
+            if((shipment.Driver == null) || (shipment.Driver.DriverID != this.driverID))
             {
                 throw new InvalidOperationException("This shipment is not reserved for the current driver.");
             }
@@ -123,30 +96,29 @@ namespace TruckSmartWeb.Models
         }
         #endregion
 
-        #region Provider management
+        #region Emergency service providers
         public List<ServiceProvider> GetProviders()
         {
-            //Simplified code for using redis cache
-            //List<ServiceProvider> results = null;
-            //string cacheKey = "TruckSmart_Providers";
-            //IDatabase cache = Connection.GetDatabase();
-            //string cacheData = cache.StringGet(cacheKey);
-            //if(!string.IsNullOrEmpty(cacheData))
-            //{
-            //    try
-            //    {
-            //        results = JsonConvert.DeserializeObject<List<ServiceProvider>>(cacheData);
-            //    } catch
-            //    {
-            //        //Do something if there is an error
-            //    }
-            //}
-            //if(results==null)
-            //{
-            //    results = this.ServiceProviders.ToList();
-            //    cache.StringSet(cacheKey, JsonConvert.SerializeObject(results));
-            //}
-            List<ServiceProvider> results = this.ServiceProviders.ToList();
+            List<ServiceProvider> results = null;
+            string cacheKey = "TruckSmart_Providers";
+            IDatabase cache = Connection.GetDatabase();
+            string cacheData = cache.StringGet(cacheKey);
+            if (!string.IsNullOrEmpty(cacheData))
+            {
+                try
+                {
+                    results = JsonConvert.DeserializeObject<List<ServiceProvider>>(cacheData);
+                }
+                catch
+                {
+                    //Do something if there is an error
+                }
+            }
+            if ((results==null) || (results.Count ==0))
+            {
+                results = this.ServiceProviders.ToList();
+                cache.StringSet(cacheKey, JsonConvert.SerializeObject(results));
+            }
             return results;
         }
         public ServiceProvider GetNearestProvider(double latitude, double longitude)
@@ -157,201 +129,10 @@ namespace TruckSmartWeb.Models
             but it serves our purposes here.
             */
             var providers = GetProviders();
-            var id = (int)Math.Truncate(((new Random()).NextDouble() * (double)providers.Count));
+            var id = (int) Math.Truncate(((new Random()).NextDouble() * (double)providers.Count));
             return providers[id];
         }
-        #endregion
-
-        #region Expense management
-        //Note: Expenses are not saved to the relational database
-        private CloudTable _expenseTable = null;
-        private CloudStorageAccount _acct = null;
-
-        private CloudStorageAccount storageAccount
-        {
-            get
-            {
-                if (_acct == null)
-                {
-                    //TODO: 1. Storage Account connections
-                    //This is pretty standard for working with storage accounts.
-                    //Generally, the key should be kept in Key Vault.
-                    _acct = CloudStorageAccount.Parse(ConfigurationManager.ConnectionStrings["StorageAccount"].ConnectionString);
-                }
-                return _acct;
-            }
-        }
-        private CloudTable expenseTable
-        {
-            get
-            {
-                if (_expenseTable == null)
-                {
-                    //TODO: 2. Table reference
-                    //This is a pretty standard approach for working with any storage objects:
-                    //1. Create a client
-                    //2. Get a reference to the object
-                    //3. Create the object if it doesn't exist
-                    var client = storageAccount.CreateCloudTableClient();
-                    _expenseTable = client.GetTableReference("expenses");
-                    if (expenseTable.CreateIfNotExists())
-                    {
-                        generateExpenses();
-                    }
-                }
-                return _expenseTable;
-            }
-        }
-
-
-        public List<Expense> GetExpenses(Guid? ShipmentID = null, DateTime? From = null, DateTime? To = null)
-        {
-            var expenses = new List<Expense>();
-
-            //TODO: 3. Basic querying.  
-            var partitionFilter = TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, this.driverID);
-            TableQuery<Expense> query = null;
-            if (!ShipmentID.HasValue && (!From.HasValue || !To.HasValue))
-            {
-                query = new TableQuery<Expense>().Where(partitionFilter);
-            }
-            if (ShipmentID.HasValue)
-            {
-                var shipmentFilter = string.Format("ShipmentID eq guid'{0}'", ShipmentID.Value);
-                query = new TableQuery<Expense>().Where(TableQuery.CombineFilters(
-                    partitionFilter,
-                    TableOperators.And,
-                    shipmentFilter
-                    ));
-
-            }
-            if (From.HasValue && To.HasValue)
-            {
-                //TODO: 4. More filtering
-                //There are two important aspects to this filter:
-                //1. It uses the CombineFilters method to combine filters
-                //2. It uses the datetime qualifier for the date leterals.  This
-                //   is standard OQuery syntax.  The helper methods do not work with 
-                //   date data types.
-                var fromFilter = string.Format("(Date ge datetime'{0:s}')", From.Value);
-
-                var toFilter = string.Format("(Date le datetime'{0:s}')", To.Value);
-
-                query = new TableQuery<Expense>().Where(TableQuery.CombineFilters(
-                    partitionFilter,
-                    TableOperators.And,
-                    TableQuery.CombineFilters(fromFilter, TableOperators.And, toFilter)
-                    ));
-            }
-
-            var result = expenseTable.ExecuteQuery(query);
-            return result.ToList();
-        }
-        public Expense GetExpense(Guid ExpenseID)
-        {
-            var expense = new Expense();
-            var operation = TableOperation.Retrieve<Expense>(this.driverID, ExpenseID.ToString());
-            var result = expenseTable.Execute(operation);
-            return (Expense)result.Result;
-
-
-        }
-        public Expense SaveExpense(Expense NewExpense, byte[] receipt)
-        {
-            //Add code to save an expense record and receipt image
-            if (receipt != null)
-            {
-                NewExpense.HasReceipt = true;
-                NewExpense.ReceiptURL = saveReceipt(NewExpense.ExpenseID, "jpg", receipt);
-            }
-            var operation = TableOperation.Insert(NewExpense);
-            expenseTable.Execute(operation);
-            return NewExpense;
-        }
-
-        private string saveReceipt(Guid id, string fileType, byte[] receipt)
-        {
-            Regex reg = new Regex("[^a-zA-Z0-9 -]");
-            string containerName = reg.Replace(this.driverID, "-").ToLower();
-            string fileName = string.Format("{0}.{1}", reg.Replace(id.ToString(), ""), fileType);
-
-            //Get or create container
-            //TODO: 5. Create a container per driver
-            //There is a limit of 5 policies per container but there are not limits to the 
-            //number of containers that can be created in a storage account.  This is necessary
-            //because each driver needs access to only their own receipt images, and that access needs
-            //to be revocable on a per driver basis.
-            var client = storageAccount.CreateCloudBlobClient();
-            var container = client.GetContainerReference(containerName);
-            if (container.CreateIfNotExists())
-            {
-                //Create policy
-                var permissions = new BlobContainerPermissions();
-                permissions.SharedAccessPolicies.Add("standard", new SharedAccessBlobPolicy
-                {
-                    SharedAccessExpiryTime = DateTime.UtcNow.AddYears(1),
-                    Permissions = SharedAccessBlobPermissions.Read
-                });
-                permissions.PublicAccess = BlobContainerPublicAccessType.Off;
-                container.SetPermissions(permissions);
-
-            }
-
-
-            //Store image
-            var blob = container.GetBlockBlobReference(fileName);
-            blob.UploadFromByteArray(receipt, 0, receipt.Length);
-            //Generate SAS and return URL
-            string sas = blob.GetSharedAccessSignature(new SharedAccessBlobPolicy(), "standard");
-            return blob.Uri.AbsoluteUri + sas;
-
-
-        }
-
-
-        private void generateExpenses()
-        {
-
-            string[] hotels = { "Marriot", "Hyatt", "Westin", "Motel 6", "Days Inn" };
-            string[] locations = { "Pacific Coast Highway", "Jersey Turnpike", "Route 66", "Miracle Mile", "Chisolm Trail" };
-            var rnd = new Random();
-            foreach (var shipment in this.GetMyShipments())
-            {
-                for (int lcv = 0; lcv < 5; lcv++)
-                {
-                    SaveExpense(new Expense
-                    {
-                        ExpenseID = Guid.NewGuid(),
-                        DriverID = System.Web.HttpContext.Current.User.Identity.Name,
-                        ShipmentID = shipment.ShipmentID,
-                        ExpenseType = ExpenseTypeEnum.Lodging,
-                        Date = shipment.Scheduled.AddDays(-lcv),
-                        Amount = (100f + 1000f * rnd.NextDouble()),
-                        HasReceipt = false,
-                        ReceiptURL = "",
-                        Hotel = hotels[lcv],
-                        Room = (lcv * 100 + 15).ToString(),
-                        DirectBill = lcv % 3 == 0
-
-                    }, null);
-                    SaveExpense(new Expense
-                    {
-                        ExpenseID = Guid.NewGuid(),
-                        DriverID = System.Web.HttpContext.Current.User.Identity.Name,
-                        ShipmentID = shipment.ShipmentID,
-                        ExpenseType = ExpenseTypeEnum.Toll,
-                        Date = shipment.Scheduled.AddDays(-lcv),
-                        Amount = (.25f + 10f * rnd.NextDouble()),
-                        HasReceipt = false,
-                        ReceiptURL = "",
-                        Location = locations[lcv]
-                    }, null);
-                }
-            }
-
-        }
 
         #endregion
-
     }
 }

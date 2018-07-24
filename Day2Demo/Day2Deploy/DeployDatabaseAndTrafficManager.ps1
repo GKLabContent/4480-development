@@ -15,7 +15,7 @@ $dbName = "TruckSmart"
 $dbServerName = "$($uniquePrefix)sql"
 $dbFileName = "trucksmart.bacpac"
 $redisName = "$($uniquePrefix)redis"
-$tmpName = "4480ch02tsw"
+$tmpName = "$($uniquePrefix)tmp"
 $sqlPasswordSecure = ConvertTo-SecureString -String $sqlPassword -AsPlainText -Force
 $webAppNames = @("$($uniquePrefix)east","$($uniquePrefix)west")
 
@@ -38,15 +38,27 @@ New-AzureRmSqlDatabaseImport -ResourceGroupName $rg -ServerName $dbServerName -D
      -AdministratorLogin $sqlAdmin  -AdministratorLoginPassword $sqlPasswordSecure `
      -Edition Basic -ServiceObjectiveName Basic -DatabaseMaxSizeBytes 5000000
 
-#Update the web apps to point to the bacpac file
+#Update the web apps to point to the SQL database and Redis cache
 $connectionString = "Server=tcp:$($dbServerName).database.windows.net,1433;Initial Catalog=$($dbName);" + `
     "Persist Security Info=False;User ID=$($sqlAdmin);Password=$($sqlPassword);MultipleActiveResultSets=False;" + `
     "Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 
 $connectionStrings = @{TruckSmartDB=@{Type="Custom"; Value=$connectionString}}
-foreach($webAppName in $webAppNames) {
-    Set-AzureRmWebApp -ResourceGroupName $rg -Name $webAppName -ConnectionStrings $connectionStrings
+
+$redisKey =  (Get-AzureRmRedisCacheKey -ResourceGroupName $rg -Name $redisName).PrimaryKey
+$redisConnection =  "$($redisName).redis.cache.windows.net:6380,password=$($redisKey),ssl=True,abortConnect=False"
+$settings = (Get-AzureRmWebApp -ResourceGroupName $rg -Name $webAppNames[0]).SiteConfig.AppSettings
+$newSettings = @{}
+foreach($setting in $settings) {
+    $newSettings[$setting.Name] = $setting.Value
 }
+$newSettings["redis"] = $redisConnection
+
+foreach($webAppName in $webAppNames) {
+    Set-AzureRmWebApp -ResourceGroupName $rg -Name $webAppName -ConnectionStrings $connectionStrings -AppSettings $newSettings
+}
+
+#Update the web apps with the redis connection string
 
 #Create traffic manager profile and endpoints.
 $tmp = New-AzureRmTrafficManagerProfile -Name $tmpName -ResourceGroupName $rg -TrafficRoutingMethod Performance `
@@ -62,5 +74,4 @@ foreach($ws in (Get-AzureRmWebApp -ResourceGroupName $rg)) {
 Write-Output "SQL Connection String:"
 Write-Output $connectionString
 Write-Output ""
-Write-Output "Redis Cache Key"
-Write-output (Get-AzureRmRedisCacheKey -ResourceGroupName $rg -Name $redisName).PrimaryKey
+Write-Output "Redis Connection String"
