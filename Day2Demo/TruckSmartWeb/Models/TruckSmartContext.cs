@@ -33,9 +33,8 @@ namespace TruckSmartWeb.Models
 
         static TruckSmartContext()
         {
-            //var init = new TruckSmartDBInitializer();
-            //init.InitializeDatabase(new TruckSmartContext());
-            Database.SetInitializer<TruckSmartContext>(null);
+            var init = new TruckSmartDBInitializer();
+            init.InitializeDatabase(new TruckSmartContext());
         }
 
         #region Database context setup
@@ -114,7 +113,7 @@ namespace TruckSmartWeb.Models
                     //Do something if there is an error
                 }
             }
-            if ((results==null) || (results.Count ==0))
+            if (results==null)
             {
                 results = this.ServiceProviders.ToList();
                 cache.StringSet(cacheKey, JsonConvert.SerializeObject(results));
