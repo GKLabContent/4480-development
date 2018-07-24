@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27825.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckSmartWeb", "TruckSmartWeb\TruckSmartWeb.csproj", "{98C54A1D-0D88-482D-AE15-9CC51A8C85BC}"
+EndProject
+Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "Day2Deploy", "Day2Deploy\Day2Deploy.deployproj", "{5F34703F-492A-4E7F-B0BF-1A29E0497A43}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{98C54A1D-0D88-482D-AE15-9CC51A8C85BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98C54A1D-0D88-482D-AE15-9CC51A8C85BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98C54A1D-0D88-482D-AE15-9CC51A8C85BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F34703F-492A-4E7F-B0BF-1A29E0497A43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F34703F-492A-4E7F-B0BF-1A29E0497A43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F34703F-492A-4E7F-B0BF-1A29E0497A43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F34703F-492A-4E7F-B0BF-1A29E0497A43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4AFDAB84-931D-4E85-BF14-4C3BFC5D3007}
 	EndGlobalSection
 EndGlobal

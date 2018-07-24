@@ -7,7 +7,7 @@ using System.Web;
 
 namespace TruckSmartWeb.Models
 {
-    public class TruckSmartDBInitializer : DropCreateDatabaseIfModelChanges<TruckSmartContext>
+    public class TruckSmartDBInitializer : CreateDatabaseIfNotExists<TruckSmartContext>
     {
         protected override void Seed(TruckSmartContext context)
         {

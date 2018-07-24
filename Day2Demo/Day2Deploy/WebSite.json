@@ -1,0 +1,260 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "uniquePrefix": {
+      "type": "string",
+      "minLength": 1
+    },
+    "_artifactsLocation": {
+      "type": "string"
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring"
+    },
+    "TruckSmartPackageFolder": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "TruckSmartWeb",
+      "metadata": {
+        "description": "WebDeploy package location. This path is relative to the _artifactsLocation parameter"
+      }
+    },
+    "TruckSmartPackageFileName": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "package.zip",
+      "metadata": {
+        "description": "Name of the webdeploy package"
+      }
+    },
+    "sqlserverAdminLogin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sqlserverAdminLoginPassword": {
+      "type": "securestring"
+    }
+
+  },
+  "variables": {
+    "skuName": "S1",
+    "skuCapacity": 1,
+    "hostingPlanPrefix": "trucksmart",
+    "locationSuffix": [ "east", "west" ],
+    "location": [ "EastUS", "WestUS" ],
+    "hostingPlanNames": [ "[concat(variables('hostingPlanPrefix'),variables('locationSuffix')[0],'-ASP')]", "[concat(variables('hostingPlanPrefix'),variables('locationSuffix')[1],'-ASP')]" ],
+    "siteNames": [ "[concat(parameters('uniquePrefix'),variables('locationSuffix')[0])]", "[concat(parameters('uniquePrefix'),variables('locationSuffix')[1])]" ],
+    "redisName": "[concat(parameters('uniquePrefix'),'redis')]",
+    "redisSKUName": "Basic",
+    "redisSKUFamily": "C",
+    "redisSKUCapacity": 0,
+    "redisRedisVersion": "2.8",
+    "sqlserverName": "[concat(parameters('uniquePrefix'),'sql')]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[variables('hostingPlanNames')[copyIndex()]]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[variables('location')[copyIndex()]]",
+      "copy": {
+        "name": "planCopy",
+        "count": 2
+      },
+
+      "tags": {
+        "displayName": "HostingPlan"
+      },
+      "sku": {
+        "name": "[variables('skuName')]",
+        "capacity": "[variables('skuCapacity')]"
+      },
+      "properties": {
+        "name": "[variables('hostingPlanNames')[copyIndex()]]"
+      }
+    },
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[variables('siteNames')[copyIndex()]]",
+      "type": "Microsoft.Web/sites",
+      "location": "[variables('location')[copyIndex()]]",
+      "tags": {
+        "[concat('hidden-related:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', variables('hostingPlanNames')[copyIndex()])]": "Resource",
+        "displayName": "Website"
+      },
+      "copy": {
+        "name": "siteCopy",
+        "count": 2
+      },
+      "dependsOn": [
+        "planCopy"
+      ],
+      "properties": {
+        "name": "[variables('siteNames')[copyIndex()]]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanNames')[copyIndex()])]"
+      },
+      "resources": [
+        {
+          "name": "MSDeploy",
+          "type": "extensions",
+          "location": "[variables('location')[copyIndex()]]",
+          "apiVersion": "2015-08-01",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('siteNames')[copyIndex()])]"
+          ],
+          "tags": {
+            "displayName": "TruckSmartWeb"
+          },
+          "properties": {
+            "packageUri": "[concat(parameters('_artifactsLocation'), '/', parameters('TruckSmartPackageFolder'), '/', parameters('TruckSmartPackageFileName'), parameters('_artifactsLocationSasToken'))]",
+            "dbType": "None",
+            "connectionString": "",
+            "setParameters": {
+              "IIS Web Application Name": "[variables('siteNames')[copyIndex()]]"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "apiVersion": "2014-04-01",
+      "name": "[concat(variables('hostingPlanNames')[copyIndex()], '-', resourceGroup().name)]",
+      "type": "Microsoft.Insights/autoscalesettings",
+      "location": "[variables('location')[copyIndex()]]",
+      "copy": {
+        "name": "autoScaleCopy",
+        "count": 2
+      },
+      "tags": {
+        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', variables('hostingPlanNames')[copyIndex()])]": "Resource",
+        "displayName": "AutoScaleSettings"
+      },
+      "dependsOn": [
+        "planCopy"
+      ],
+      "properties": {
+        "profiles": [
+          {
+            "name": "Default",
+            "capacity": {
+              "minimum": 1,
+              "maximum": 2,
+              "default": 1
+            },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[concat(resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', variables('hostingPlanNames')[copyIndex()])]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 80.0
+                },
+                "scaleAction": {
+                  "direction": "Increase",
+                  "type": "ChangeCount",
+                  "value": 1,
+                  "cooldown": "PT10M"
+                }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[concat(resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', variables('hostingPlanNames')[copyIndex()])]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT1H",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 60.0
+                },
+                "scaleAction": {
+                  "direction": "Decrease",
+                  "type": "ChangeCount",
+                  "value": 1,
+                  "cooldown": "PT1H"
+                }
+              }
+            ]
+          }
+        ],
+        "enabled": false,
+        "name": "[concat(variables('hostingPlanNames')[copyIndex()], '-', resourceGroup().name)]",
+        "targetResourceUri": "[concat(resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', variables('hostingPlanNames')[copyIndex()])]"
+      }
+    },
+    {
+      "name": "[variables('redisName')]",
+      "type": "Microsoft.Cache/Redis",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-04-01",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "redis"
+      },
+      "properties": {
+        "sku": {
+          "name": "[variables('redisSKUName')]",
+          "family": "[variables('redisSKUFamily')]",
+          "capacity": "[variables('redisSKUCapacity')]"
+        },
+        "redisVersion": "[variables('redisRedisVersion')]"
+      }
+    },
+    {
+      "name": "[variables('sqlserverName')]",
+      "type": "Microsoft.Sql/servers",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2014-04-01-preview",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "sqlserver"
+      },
+      "properties": {
+        "administratorLogin": "[parameters('sqlserverAdminLogin')]",
+        "administratorLoginPassword": "[parameters('sqlserverAdminLoginPassword')]"
+      },
+      "resources": [
+        {
+          "name": "AllowAllWindowsAzureIps",
+          "type": "firewallrules",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('sqlserverName'))]"
+          ],
+          "properties": {
+            "startIpAddress": "0.0.0.0",
+            "endIpAddress": "0.0.0.0"
+          }
+        }
+      ]
+    }
+  ],
+  "outputs": {
+    "ResourceGroup": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "UniquePrefix": {
+      "type": "string",
+      "value": "[parameters('uniquePrefix')]"
+    },
+    "Location": {
+      "type": "string",
+      "value": "[resourceGroup().location]"
+    },
+    "sqlAdmin": {
+      "type": "string",
+      "value": "[parameters('sqlserverAdminLogin')]"
+    },
+    "sqlPassword": {
+      "type": "securestring",
+      "value": "[parameters('sqlserverAdminLoginPassword')]"
+    }
+  }
+}
