@@ -9,7 +9,7 @@ namespace TruckSmartWeb.Controllers
 {
     public class HomeController : Controller
     {
-        TruckSmartContext ct = new TruckSmartContext();
+        //TruckSmartContext ct = new TruckSmartContext();
         public ActionResult Index()
         {
             ViewBag.Title = "Home Page";

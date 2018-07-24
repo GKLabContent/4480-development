@@ -1,5 +1,5 @@
 ﻿##Values that map to the deployment
-$rg = "4480CH02"
+$rg = "4480CH03"
 $uniquePrefix = "tsw4480c2"
 $location = "EastUS"
 $sqlAdmin = "student"

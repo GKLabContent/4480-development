@@ -1,5 +1,9 @@
 ﻿using System;
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using TruckSmartManifestTypes;
 
@@ -19,19 +23,12 @@ namespace TruckSmartWeb.Models
         /// <returns>Manifest Response - simple POCO with results</returns>
         public static ManifestResponse ProcessMessage(ManifestRequest datagram)
         {
+            double distance = 0;
+            //TODO: Add code to call function app
+            //Note: Using statements hav ealready been added.
+ 
 
-            var earthRadiusKm = 6371;
 
-            var dLat = degreesToRadians(datagram.End.Latitude - datagram.Start.Latitude);
-            var dLon = degreesToRadians(datagram.End.Longitude - datagram.Start.Longitude);
-
-            var lat1 = degreesToRadians(datagram.End.Latitude);
-            var lat2 = degreesToRadians(datagram.Start.Latitude);
-
-            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2) * Math.Cos(lat1) * Math.Cos(lat2);
-            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-            var distance = earthRadiusKm * c;
             var output =  new ManifestResponse() { ServerAddress = datagram.ServerAddress, ClientAddress = datagram.ClientAddress, Distance = distance, Status = distance < 1000 ? ManifestStatus.Accepted : ManifestStatus.Pending };
             saveData(datagram, output);
             return output;

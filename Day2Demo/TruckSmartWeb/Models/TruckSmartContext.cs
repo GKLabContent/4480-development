@@ -33,8 +33,9 @@ namespace TruckSmartWeb.Models
 
         static TruckSmartContext()
         {
-            var init = new TruckSmartDBInitializer();
-            init.InitializeDatabase(new TruckSmartContext());
+            //var init = new TruckSmartDBInitializer();
+            //init.InitializeDatabase(new TruckSmartContext());
+            Database.SetInitializer<TruckSmartContext>(null);
         }
 
         #region Database context setup
